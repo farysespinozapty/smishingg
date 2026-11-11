@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>📱 SmishGuard - Detecta SMS fraudulentos</title>
+    <style>
+        /* ==================== ESTILOS GLOBALES ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0e17;
+            color: #e0e6ed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            background-image: radial-gradient(ellipse at 50% 0%, #1a2a3a 0%, #0a0e17 70%);
+        }
+
+        /* ==================== CONTENEDOR PRINCIPAL ==================== */
+        #app {
+            width: 100%;
+            max-width: 420px;
+            background: #111927;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 80px rgba(0, 255, 157, 0.03);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ==================== HEADER ==================== */
+        #header {
+            background: linear-gradient(135deg, #0d1b2a, #1a2a3a);
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            position: relative;
+        }
+
+        #header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #00ff9d, #00cc7d);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -0.5px;
+        }
+        .logo-text .highlight {
+            color: #00ff9d;
+        }
+
+        .btn-reset {
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            color: #8a9ba8;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .btn-reset:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+
+        /* Stats */
+        #stats-row {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+        }
+
+        .stat-chip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .stat-chip .icon {
+            font-size: 0.85rem;
+        }
+        .stat-chip .value {
+            color: #fff;
+            font-weight: 600;
+            min-width: 16px;
+        }
+        .stat-chip .value.green {
+            color: #00ff9d;
+        }
+        .stat-chip .value.red {
+            color: #ff6b6b;
+        }
+        .stat-chip .value.gold {
+            color: #ffd93d;
+        }
+
+        /* ==================== BANDEJA DE SMS ==================== */
+        #sms-inbox {
+            max-height: 180px;
+            overflow-y: auto;
+            background: #0a121c;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        #sms-inbox::-webkit-scrollbar {
+            width: 3px;
+        }
+        #sms-inbox::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #sms-inbox::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .sms-item {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sms-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .sms-item.active {
+            background: rgba(0, 255, 157, 0.06);
+            border-left: 3px solid #00ff9d;
+        }
+        .sms-item .sms-preview {
+            flex: 1;
+            min-width: 0;
+        }
+        .sms-item .sender {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+        .sms-item .preview-text {
+            font-size: 0.8rem;
+            color: #8a9ba8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .sms-item .sms-time {
+            font-size: 0.65rem;
+            color: #4a5a6a;
+            margin-left: 12px;
+            white-space: nowrap;
+        }
+
+        .sms-status {
+            font-size: 0.6rem;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
+        .sms-status.pending {
+            background: rgba(255, 255, 255, 0.06);
+            color: #5a7a8a;
+        }
+        .sms-status.safe {
+            background: rgba(0, 255, 157, 0.15);
+            color: #00ff9d;
+        }
+        .sms-status.phishing {
+            background: rgba(255, 107, 107, 0.15);
+            color: #ff6b6b;
+        }
+        .sms-status.skipped {
+            background: rgba(255, 217, 61, 0.1);
+            color: #ffd93d;
+        }
+
+        /* ==================== VISUALIZADOR DE SMS ==================== */
+        #sms-viewer {
+            padding: 20px 20px 16px;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #sms-viewer .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 280px;
+            color: #3a5a6a;
+            text-align: center;
+        }
+        #sms-viewer .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        #sms-viewer .empty-state h3 {
+            font-weight: 400;
+            font-size: 1rem;
+        }
+        #sms-viewer .empty-state p {
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        #sms-content {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* Burbuja de SMS (estilo chat) */
+        .sms-bubble {
+            background: #1a2a3a;
+            border-radius: 16px 16px 16px 4px;
+            padding: 16px 18px;
+            margin-bottom: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            position: relative;
+        }
+
+        .sms-bubble .sms-sender {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #00ff9d;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sms-bubble .sms-sender .time {
+            font-weight: 400;
+            font-size: 0.7rem;
+            color: #5a7a8a;
+        }
+
+        .sms-bubble .sms-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #e0e6ed;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .sms-bubble .sms-text .link {
+            color: #4a9eff;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .sms-bubble .sms-text .suspicious {
+            background: rgba(255, 107, 107, 0.12);
+            padding: 1px 4px;
+            border-radius: 3px;
+            border-left: 2px solid #ff6b6b;
+        }
+
+        .sms-bubble .sms-text .safe-highlight {
+            background: rgba(0, 255, 157, 0.08);
+            padding: 1px 4px;
+            border-radius: 3px;
+            border-left: 2px solid #00ff9d;
+        }
+
+        /* Análisis de pistas */
+        #analysis-box {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            display: none;
+        }
+
+        #analysis-box.visible {
+            display: block;
+        }
+
+        #analysis-box .analysis-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #5a7a8a;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        #analysis-box .analysis-item {
+            font-size: 0.85rem;
+            color: #8a9ba8;
+            padding: 3px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        #analysis-box .analysis-item .bullet {
+            color: #ffd93d;
+            font-weight: 700;
+        }
+        #analysis-box .analysis-item .bullet.green {
+            color: #00ff9d;
+        }
+        #analysis-box .analysis-item .bullet.red {
+            color: #ff6b6b;
+        }
+
+        /* ==================== BOTONES DE DECISIÓN ==================== */
+        #decision-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            justify-content: center;
+            min-width: 80px;
+        }
+
+        .btn-safe {
+            background: #00ff9d;
+            color: #0a0e17;
+        }
+        .btn-safe:hover:not(:disabled) {
+            background: #00cc7d;
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(0, 255, 157, 0.15);
+        }
+
+        .btn-phishing {
+            background: #ff6b6b;
+            color: #fff;
+        }
+        .btn-phishing:hover:not(:disabled) {
+            background: #e05555;
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.15);
+        }
+
+        .btn-skip {
+            background: rgba(255, 255, 255, 0.06);
+            color: #8a9ba8;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            flex: 0.5;
+            min-width: 60px;
+        }
+        .btn-skip:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ==================== FEEDBACK ==================== */
+        #feedback-bar {
+            padding: 10px 20px;
+            font-size: 0.8rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            background: rgba(0, 0, 0, 0.2);
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        #feedback-bar .fb-icon {
+            font-size: 1rem;
+        }
+        #feedback-bar .fb-text {
+            color: #8a9ba8;
+            flex: 1;
+        }
+        #feedback-bar .fb-text.success {
+            color: #00ff9d;
+        }
+        #feedback-bar .fb-text.error {
+            color: #ff6b6b;
+        }
+        #feedback-bar .fb-text.info {
+            color: #ffd93d;
+        }
+
+        /* ==================== MODAL ==================== */
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(12px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.4s ease;
+            padding: 20px;
+        }
+
+        #modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        #modal-content {
+            background: #111927;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 32px 28px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+        }
+
+        #modal-content .result-icon {
+            font-size: 56px;
+            margin-bottom: 8px;
+        }
+
+        #modal-content h2 {
+            font-size: 1.6rem;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+
+        #modal-content .subtitle {
+            color: #8a9ba8;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+
+        #modal-content .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 12px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .stat-card .label {
+            font-size: 0.65rem;
+            color: #5a7a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .stat-card .value.green {
+            color: #00ff9d;
+        }
+        .stat-card .value.red {
+            color: #ff6b6b;
+        }
+        .stat-card .value.gold {
+            color: #ffd93d;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ==================== ANIMACIONES ==================== */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .slide-up {
+            animation: slideUp 0.3s ease forwards;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.4;
+            }
+        }
+        .pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .badge-new {
+            background: #ff6b6b;
+            color: #fff;
+            font-size: 0.5rem;
+            padding: 1px 7px;
+            border-radius: 10px;
+            margin-left: 6px;
+            font-weight: 700;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 420px) {
+            body {
+                padding: 8px;
+            }
+            #header {
+                padding: 12px 14px 10px;
+            }
+            .logo-text {
+                font-size: 0.95rem;
+            }
+            .stat-chip {
+                font-size: 0.65rem;
+                padding: 3px 8px;
+            }
+            #sms-viewer {
+                padding: 14px 14px 12px;
+                min-height: 260px;
+            }
+            .sms-bubble {
+                padding: 12px 14px;
+            }
+            .sms-bubble .sms-text {
+                font-size: 0.9rem;
+            }
+            .btn {
+                font-size: 0.75rem;
+                padding: 8px 12px;
+                min-width: 60px;
+            }
+            #modal-content {
+                padding: 24px 18px;
+            }
+            #modal-content .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 360px) {
+            #stats-row {
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            .stat-chip {
+                font-size: 0.6rem;
+                padding: 2px 6px;
+            }
+            #decision-buttons {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+            .btn-skip {
+                flex: 1;
+            }
+        }
+
+        /* ==================== NUEVA PALETA PASTEL LILA ==================== */
+        body {
+            background: linear-gradient(145deg, #fbfaff 0%, #f1edff 48%, #e8e0ff 100%);
+            color: #40365d;
+            background-image:
+                radial-gradient(ellipse at 15% 5%, rgba(214, 201, 255, .55), transparent 42%),
+                radial-gradient(ellipse at 90% 95%, rgba(231, 220, 255, .75), transparent 40%),
+                linear-gradient(145deg, #ffffff 0%, #f5f1ff 55%, #ebe5ff 100%);
+        }
+        #app {
+            background: #ffffff;
+            border: 1px solid #e6defb;
+            box-shadow: 0 18px 50px rgba(100, 78, 155, .16);
+        }
+        #header {
+            background: linear-gradient(135deg, #eee8ff, #ded3ff);
+            border-bottom: 1px solid #e4dcf8;
+        }
+        .logo-icon {
+            background: linear-gradient(135deg, #a78bfa, #8064d8);
+            color: #fff;
+        }
+        .logo-text { color: #44366e; }
+        .logo-text .highlight { color: #7656c8; }
+        .btn-reset {
+            background: rgba(255,255,255,.72);
+            border: 1px solid #d8cdf5;
+            color: #67558e;
+        }
+        .btn-reset:hover { background: #fff; color: #493675; }
+        .stat-chip {
+            background: rgba(255,255,255,.72);
+            border: 1px solid #e5def5;
+            color: #6d6285;
+        }
+        .stat-chip .value { color: #493d68; }
+        .stat-chip .value.green, .stat-card .value.green { color: #459b7c; }
+        .stat-chip .value.red, .stat-card .value.red { color: #d87583; }
+        .stat-chip .value.gold, .stat-card .value.gold { color: #b28a3e; }
+
+        #sms-inbox {
+            background: #faf8ff;
+            border-bottom: 1px solid #eee9f8;
+        }
+        #sms-inbox::-webkit-scrollbar-thumb { background: #d5c9f1; }
+        .sms-item { border-bottom: 1px solid #f0ecf8; }
+        .sms-item:hover { background: #f2edff; }
+        .sms-item.active {
+            background: #eee8ff;
+            border-left: 3px solid #9678df;
+        }
+        .sms-item .sender { color: #493d68; }
+        .sms-item .preview-text { color: #827894; }
+        .sms-item .sms-time { color: #a69bb8; }
+        .sms-status.pending { background: #eeeaf5; color: #80758f; }
+        .sms-status.safe { background: #e3f4ed; color: #438b70; }
+        .sms-status.phishing { background: #fde9ec; color: #c76575; }
+        .sms-status.skipped { background: #fff3dc; color: #a77b32; }
+
+        #sms-viewer .empty-state { color: #998db5; }
+        .sms-bubble {
+            background: #f5f1ff;
+            border: 1px solid #e6def8;
+        }
+        .sms-bubble .sms-sender { color: #795bc7; }
+        .sms-bubble .sms-sender .time { color: #998eae; }
+        .sms-bubble .sms-text { color: #4e4563; }
+        .sms-bubble .sms-text .link { color: #7961c5; }
+        .sms-bubble .sms-text .suspicious {
+            background: #fde9ec;
+            border-left: 2px solid #dc8290;
+        }
+        .sms-bubble .sms-text .safe-highlight {
+            background: #e4f4ec;
+            border-left: 2px solid #72b99a;
+        }
+        #analysis-box {
+            background: #fbfaff;
+            border: 1px solid #e9e2f6;
+        }
+        #analysis-box .analysis-title { color: #887a9f; }
+        #analysis-box .analysis-item { color: #716781; }
+        #analysis-box .analysis-item .bullet { color: #c49a51; }
+        #analysis-box .analysis-item .bullet.green { color: #459b7c; }
+        #analysis-box .analysis-item .bullet.red { color: #d87583; }
+
+        .btn-safe {
+            background: #bfe8d7;
+            color: #285e4b;
+        }
+        .btn-safe:hover:not(:disabled) {
+            background: #a9ddc8;
+            box-shadow: 0 6px 18px rgba(91, 166, 132, .2);
+        }
+        .btn-phishing {
+            background: #f2c2ca;
+            color: #81424d;
+        }
+        .btn-phishing:hover:not(:disabled) {
+            background: #e9aeb9;
+            box-shadow: 0 6px 18px rgba(199, 112, 129, .18);
+        }
+        .btn-skip {
+            background: #eee9f7;
+            color: #716486;
+            border: 1px solid #e1d9ef;
+        }
+        .btn-skip:hover:not(:disabled) {
+            background: #e4dcf3;
+            color: #51436e;
+        }
+        #feedback-bar {
+            background: #faf8ff;
+            border-top: 1px solid #eee8f7;
+        }
+        #feedback-bar .fb-text { color: #7c718f; }
+        #feedback-bar .fb-text.success { color: #438b70; }
+        #feedback-bar .fb-text.error { color: #c76575; }
+        #feedback-bar .fb-text.info { color: #a77b32; }
+
+        #modal-overlay {
+            background: rgba(63, 48, 91, .38);
+            backdrop-filter: blur(10px);
+        }
+        #modal-content {
+            background: #fff;
+            border: 1px solid #e5dcf7;
+            box-shadow: 0 18px 55px rgba(74, 55, 119, .2);
+        }
+        #modal-content h2 { color: #493d68; }
+        #modal-content .subtitle { color: #827894; }
+        .stat-card {
+            background: #f7f4ff;
+            border: 1px solid #ebe4f8;
+        }
+        .stat-card .label { color: #8d82a1; }
+        .stat-card .value { color: #493d68; }
+        .badge-new { background: #e9aeb9; color: #713d49; }
+
+        @media (prefers-reduced-motion: no-preference) {
+            #app { transition: box-shadow .25s ease; }
+            #app:hover { box-shadow: 0 22px 58px rgba(100, 78, 155, .2); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- ==================== APP ==================== -->
+    <div id="app">
+
+        <!-- HEADER -->
+        <div id="header">
+            <div id="header-top">
+                <div class="logo">
+                    <div class="logo-icon">📱</div>
+                    <div class="logo-text"><span class="highlight">Smish</span>Guard</div>
+                </div>
+                <button class="btn-reset" onclick="resetGame()">🔄 Reiniciar</button>
+            </div>
+            <div id="stats-row">
+                <div class="stat-chip">
+                    <span class="icon">📨</span>
+                    <span>Pendientes</span>
+                    <span class="value" id="pending-count">0</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="icon">✅</span>
+                    <span>Aciertos</span>
+                    <span class="value green" id="correct-count">0</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="icon">❌</span>
+                    <span>Fallos</span>
+                    <span class="value red" id="wrong-count">0</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="icon">⭐</span>
+                    <span>Puntos</span>
+                    <span class="value gold" id="score-display">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SMS INBOX -->
+        <div id="sms-inbox">
+            <div id="sms-list"></div>
+        </div>
+
+        <!-- SMS VIEWER -->
+        <div id="sms-viewer">
+            <div class="empty-state" id="empty-state">
+                <div class="icon">📭</div>
+                <h3>Selecciona un SMS</h3>
+                <p>Analiza el mensaje y decide si es seguro o phishing</p>
+            </div>
+
+            <div id="sms-content">
+                <div class="sms-bubble">
+                    <div class="sms-sender">
+                        <span id="view-sender">Remitente</span>
+                        <span class="time" id="view-time">hoy</span>
+                    </div>
+                    <div class="sms-text" id="view-body">Contenido del mensaje...</div>
+                </div>
+
+                <div id="analysis-box">
+                    <div class="analysis-title">🔍 Análisis</div>
+                    <div id="analysis-items"></div>
+                </div>
+
+                <div id="decision-buttons">
+                    <button class="btn btn-safe" id="btn-safe" onclick="classifySms('safe')">
+                        ✅ Seguro
+                    </button>
+                    <button class="btn btn-phishing" id="btn-phishing" onclick="classifySms('phishing')">
+                        🚨 Phishing
+                    </button>
+                    <button class="btn btn-skip" onclick="skipSms()">
+                        ⏭️ Saltar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FEEDBACK -->
+        <div id="feedback-bar">
+            <span class="fb-icon">💡</span>
+            <span class="fb-text" id="feedback-text">Bienvenido a SmishGuard. Analiza los SMS y detecta los fraudulentos.</span>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL ==================== -->
+    <div id="modal-overlay">
+        <div id="modal-content">
+            <div class="result-icon" id="modal-icon">🏆</div>
+            <h2 id="modal-title">¡Misión completada!</h2>
+            <p class="subtitle" id="modal-subtitle">Has analizado todos los SMS</p>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="label">Aciertos</div>
+                    <div class="value green" id="modal-correct">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Fallos</div>
+                    <div class="value red" id="modal-wrong">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Puntuación</div>
+                    <div class="value gold" id="modal-score">0</div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-safe" onclick="resetGame()">🔄 Jugar de nuevo</button>
+                <button class="btn btn-skip" onclick="closeModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script>
+        // ================================================================
+        //  SMISHGUARD - DETECCIÓN DE SMS FRAUDULENTOS
+        //  Simulador de smishing para entrenamiento en ciberseguridad
+        // ================================================================
+
+        // ==================== BASE DE DATOS DE SMS ====================
+        const SMS_DATABASE = [{
+            id: 1,
+            sender: 'Banco Nacional',
+            number: '+52 55 1234 5678',
+            body: `⚠️ ALERTA: Su cuenta ha sido bloqueada por actividad sospechosa. Para restaurar el acceso, verifique su identidad en: https://banco-nacional.verificacion.com/restaurar
+
+            Si no lo hace en 24 horas, su cuenta será cancelada.`,
+            isPhishing: true,
+            clues: [
+                'Dominio sospechoso: "verificacion.com" no es del banco',
+                'Amenaza de cancelación en 24 horas (urgencia falsa)',
+                'Los bancos no envían enlaces para "verificar" por SMS'
+            ]
+        }, {
+            id: 2,
+            sender: 'Netflix',
+            number: '+1 800 123 4567',
+            body: `Hola, no hemos podido procesar tu pago. Tu cuenta será suspendida en 48 horas.
+
+            Actualiza tu método de pago aquí:
+            https://netflix-seguridad.com/actualizar-pago
+
+            - Equipo Netflix`,
+            isPhishing: true,
+            clues: [
+                'Dominio falso: "netflix-seguridad.com"',
+                'Solicita actualización de pago por SMS',
+                'Netflix nunca pide datos por SMS'
+            ]
+        }, {
+            id: 3,
+            sender: 'Correos de México',
+            number: '+52 55 1234 5678',
+            body: `📦 Tu paquete está en espera de entrega. Confirma tu dirección para programar la entrega:
+
+            https://correos-mexico.entrega.com/confirmar
+
+            Tienes 24 horas para responder.`,
+            isPhishing: true,
+            clues: [
+                'Dominio falso: "correos-mexico.entrega.com"',
+                'El servicio postal no usa SMS para confirmar direcciones',
+                'Urgencia falsa (24 horas)'
+            ]
+        }, {
+            id: 4,
+            sender: 'Sistema Interno',
+            number: '4321',
+            body: `🔐 Código de verificación: 4829-15
+
+            Este código es válido por 10 minutos. No lo compartas con nadie.
+
+            - Seguridad del Sistema`,
+            isPhishing: false,
+            clues: [
+                'Código de verificación típico de 2FA',
+                'No solicita acción adicional',
+                'Proviene de número corto de sistema'
+            ]
+        }, {
+            id: 5,
+            sender: 'Santander',
+            number: '+52 55 9876 5432',
+            body: `🚨 TRANSACCIÓN SOSPECHOSA: Se ha intentado un retiro de $15,000 MXN desde tu cuenta.
+
+            Si NO fuiste tú, confirma tu identidad aquí:
+            https://santander-seguridad.com/detener
+
+            O tu cuenta será vaciada.`,
+            isPhishing: true,
+            clues: [
+                'Dominio falso: "santander-seguridad.com"',
+                'Amenaza de vaciar la cuenta',
+                'Solicita confirmación por enlace externo'
+            ]
+        }, {
+            id: 6,
+            sender: 'Sistema 2FA',
+            number: '98765',
+            body: `Tu código de autenticación es: 3728-94
+
+            Ingresa este código en la aplicación para completar tu inicio de sesión.
+
+            Este código expira en 5 minutos.`,
+            isPhishing: false,
+            clues: [
+                'Código de autenticación típico de 2FA',
+                'No contiene enlaces',
+                'No solicita información adicional'
+            ]
+        }, {
+            id: 7,
+            sender: 'Amazon',
+            number: '+1 888 280 4331',
+            body: `🛒 Tu pedido #AMZ-3847-92 está en tránsito.
+
+            Para rastrear tu envío:
+            https://amazon-seguimiento.com/rastrear/AMZ-3847-92
+
+            Gracias por comprar en Amazon.`,
+            isPhishing: true,
+            clues: [
+                'Dominio falso: "amazon-seguimiento.com"',
+                'Amazon usa amazon.com/mx para rastreo',
+                'Solicita hacer clic en enlace externo'
+            ]
+        }, {
+            id: 8,
+            sender: 'Hospital General',
+            number: '+52 55 9876 5432',
+            body: `🏥 Recordatorio de cita médica:
+
+            Paciente: Juan Pérez
+            Fecha: 15 de diciembre, 10:00 AM
+            Médico: Dra. Martínez
+
+            Confirme su asistencia respondiendo CONFIRMO.`,
+            isPhishing: false,
+            clues: [
+                'Información concreta de cita médica',
+                'No solicita datos personales ni dinero',
+                'Instrucción simple de confirmación'
+            ]
+        }, {
+            id: 9,
+            sender: 'MegaFarma',
+            number: '+52 55 2345 6789',
+            body: `💊 Su pedido de medicamentos está listo para recoger.
+
+            Sucursal: Centro Médico
+            Folio: MF-2024-8932
+
+            Puede recogerlo en horario de 9:00 a 18:00 hrs.`,
+            isPhishing: false,
+            clues: [
+                'Información concreta de pedido',
+                'No solicita datos personales',
+                'No contiene enlaces sospechosos'
+            ]
+        }, {
+            id: 10,
+            sender: 'WhatsApp',
+            number: '23456',
+            body: `🔔 Código de verificación de WhatsApp:
+
+            836-491
+
+            No compartas este código con nadie. Si no solicitaste este código, ignora este mensaje.`,
+            isPhishing: false,
+            clues: [
+                'Código de verificación de WhatsApp legítimo',
+                'Advertencia de no compartir',
+                'Número corto oficial de WhatsApp'
+            ]
+        }, {
+            id: 11,
+            sender: 'Banco Azteca',
+            number: '+52 55 8765 4321',
+            body: `💰 ¡FELICIDADES! Has sido seleccionado para un préstamo de $50,000 MXN sin intereses.
+
+            Para recibir el dinero, solo debes pagar el "costo de gestión" de $500 MXN por Oxxo.
+
+            Envía foto del comprobante a este número.`,
+            isPhishing: true,
+            clues: [
+                'Ofrecen préstamo sin intereses (demasiado bueno)',
+                'Solicitan pago por adelantado',
+                'Piden foto de comprobante por SMS'
+            ]
+        }, {
+            id: 12,
+            sender: 'CFE',
+            number: '+52 55 6543 2109',
+            body: `⚡ URGENTE: Su servicio de luz será suspendido por falta de pago.
+
+            Para evitar el corte, realice su pago aquí:
+            https://cfe-pagos.com/urgente/12345
+
+            Tiene 12 horas para pagar.`,
+            isPhishing: true,
+            clues: [
+                'Dominio falso: "cfe-pagos.com"',
+                'Amenaza de corte urgente',
+                'La CFE no envía enlaces de pago por SMS'
+            ]
+        }, {
+            id: 13,
+            sender: 'Tu Banco',
+            number: '+52 55 1111 2222',
+            body: `🔒 Su tarjeta ha sido clonada. Se realizaron compras por $8,500 MXN.
+
+            Para detener los cargos, verifique su identidad:
+            https://tubanco-seguridad.com/verificar
+
+            Actúe de inmediato.`,
+            isPhishing: true,
+            clues: [
+                'Remitente genérico "Tu Banco"',
+                'Dominio falso',
+                'Crean alarma con compras ficticias'
+            ]
+        }, {
+            id: 14,
+            sender: 'Sistema de Alertas',
+            number: '44556',
+            body: `🔔 Notificación de seguridad:
+
+            Se ha detectado un inicio de sesión desde un nuevo dispositivo.
+
+            Si no reconoces este acceso, cambia tu contraseña inmediatamente.
+
+            - Centro de Seguridad`,
+            isPhishing: false,
+            clues: [
+                'Alerta legítima de seguridad',
+                'No contiene enlaces externos',
+                'Recomienda cambio de contraseña de forma segura'
+            ]
+        }, {
+            id: 15,
+            sender: 'SAT',
+            number: '+52 55 1234 5678',
+            body: `📋 IMPORTANTE: Tienes una devolución de impuestos pendiente.
+
+            Para recibir tu devolución, completa el formulario:
+            https://sat-devoluciones.com/formulario
+
+            Plazo límite: 5 días.`,
+            isPhishing: true,
+            clues: [
+                'Dominio falso: "sat-devoluciones.com"',
+                'El SAT no usa SMS para devoluciones',
+                'Solicita datos por enlace externo'
+            ]
+        }, {
+            id: 16,
+            sender: 'PagoApp',
+            number: '88321',
+            body: `💰 Pago de $1,250 MXN recibido en tu cuenta PagoApp.
+
+            Saldo actual: $4,380 MXN
+
+            - PagoApp Notificaciones`,
+            isPhishing: false,
+            clues: [
+                'Notificación de pago con monto concreto',
+                'No solicita acción del usuario',
+                'Número corto típico de aplicación'
+            ]
+        }, ];
+
+        // ==================== ESTADO DEL JUEGO ====================
+        const state = {
+            sms: [],
+            currentIndex: 0,
+            correct: 0,
+            wrong: 0,
+            score: 0,
+            totalAnalyzed: 0,
+            processedIds: new Set(),
+            gameOver: false,
+            streak: 0,
+            maxStreak: 0,
+        };
+
+        // ==================== DOM REFERENCIAS ====================
+        const smsList = document.getElementById('sms-list');
+        const pendingCount = document.getElementById('pending-count');
+        const correctCount = document.getElementById('correct-count');
+        const wrongCount = document.getElementById('wrong-count');
+        const scoreDisplay = document.getElementById('score-display');
+
+        const viewSender = document.getElementById('view-sender');
+        const viewTime = document.getElementById('view-time');
+        const viewBody = document.getElementById('view-body');
+        const analysisBox = document.getElementById('analysis-box');
+        const analysisItems = document.getElementById('analysis-items');
+
+        const emptyState = document.getElementById('empty-state');
+        const smsContent = document.getElementById('sms-content');
+        const feedbackText = document.getElementById('feedback-text');
+        const feedbackIcon = document.querySelector('.fb-icon');
+
+        // ==================== UTILIDADES ====================
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function getRandomTime() {
+            const hours = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+            const minutes = String(Math.floor(Math.random() * 60)).padStart(2, '0');
+            const ampm = Math.random() > 0.5 ? 'AM' : 'PM';
+            return `${hours}:${minutes} ${ampm}`;
+        }
+
+        function getStatusBadge(status) {
+            const labels = {
+                'pending': { class: 'pending', text: '⏳ Pendiente' },
+                'safe': { class: 'safe', text: '✅ Seguro' },
+                'phishing': { class: 'phishing', text: '🚨 Phishing' },
+                'skipped': { class: 'skipped', text: '⏭️ Saltado' }
+            };
+            return labels[status] || labels.pending;
+        }
+
+        // ==================== INICIALIZAR JUEGO ====================
+        function initGame() {
+            const shuffled = shuffleArray([...SMS_DATABASE]);
+            const count = Math.min(8 + Math.floor(Math.random() * 4), shuffled.length);
+            state.sms = shuffled.slice(0, count).map((sms, index) => ({
+                ...sms,
+                id: index + 1,
+                status: 'pending',
+                time: getRandomTime(),
+            }));
+
+            state.currentIndex = 0;
+            state.correct = 0;
+            state.wrong = 0;
+            state.score = 0;
+            state.totalAnalyzed = 0;
+            state.processedIds = new Set();
+            state.gameOver = false;
+            state.streak = 0;
+            state.maxStreak = 0;
+
+            renderInbox();
+            renderSms(0);
+            updateStats();
+            setFeedback('💡', 'Bienvenido a SmishGuard. Analiza los SMS y detecta los fraudulentos.', '');
+            closeModal();
+        }
+
+        // ==================== RENDER BANDEJA ====================
+        function renderInbox() {
+            smsList.innerHTML = '';
+            state.sms.forEach((sms, index) => {
+                const div = document.createElement('div');
+                div.className = `sms-item ${index === state.currentIndex ? 'active' : ''}`;
+                div.onclick = () => selectSms(index);
+
+                const status = getStatusBadge(sms.status);
+                const isNew = sms.status === 'pending';
+
+                div.innerHTML = `
+                    <div class="sms-preview">
+                        <div class="sender">
+                            ${sms.sender}
+                            ${isNew ? '<span class="badge-new">NUEVO</span>' : ''}
+                        </div>
+                        <div class="preview-text">${sms.body.substring(0, 50)}${sms.body.length > 50 ? '...' : ''}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span class="sms-time">${sms.time}</span>
+                        <span class="sms-status ${status.class}">${status.text}</span>
+                    </div>
+                `;
+                smsList.appendChild(div);
+            });
+
+            const pending = state.sms.filter(s => s.status === 'pending').length;
+            pendingCount.textContent = pending;
+        }
+
+        // ==================== RENDER SMS ====================
+        function renderSms(index) {
+            if (state.sms.length === 0 || index >= state.sms.length) {
+                emptyState.style.display = 'flex';
+                smsContent.style.display = 'none';
+                return;
+            }
+
+            const sms = state.sms[index];
+            emptyState.style.display = 'none';
+            smsContent.style.display = 'flex';
+
+            viewSender.textContent = `${sms.sender} (${sms.number})`;
+            viewTime.textContent = sms.time || getRandomTime();
+
+            // Resaltar elementos en el cuerpo
+            let bodyHtml = sms.body;
+            // Detectar enlaces
+            bodyHtml = bodyHtml.replace(/(https?:\/\/[^\s]+)/g, '<span class="link">$1</span>');
+            // Palabras sospechosas
+            const suspiciousWords = ['urgente', 'inmediatamente', 'suspendida', 'bloqueada', 'verificar', 'confirmar',
+                'actualizar', 'cancelada', 'vaciar', 'clonada', 'detener'
+            ];
+            suspiciousWords.forEach(word => {
+                const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                bodyHtml = bodyHtml.replace(regex, match => `<span class="suspicious">${match}</span>`);
+            });
+            // Palabras seguras
+            const safeWords = ['código', 'verificación', 'autenticación', 'confirmo', 'folio', 'pedido', 'cita'];
+            safeWords.forEach(word => {
+                const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                bodyHtml = bodyHtml.replace(regex, match => `<span class="safe-highlight">${match}</span>`);
+            });
+
+            viewBody.innerHTML = bodyHtml;
+
+            // Análisis
+            if (sms.clues && sms.clues.length > 0 && sms.status !== 'pending') {
+                analysisBox.classList.add('visible');
+                analysisItems.innerHTML = sms.clues.map((clue, i) => {
+                    const isRed = sms.isPhishing;
+                    return `<div class="analysis-item">
+                        <span class="bullet ${isRed ? 'red' : 'green'}">${isRed ? '🚨' : '✅'}</span>
+                        <span>${clue}</span>
+                    </div>`;
+                }).join('');
+            } else {
+                analysisBox.classList.remove('visible');
+            }
+
+            // Habilitar/deshabilitar botones
+            const isPending = sms.status === 'pending';
+            document.getElementById('btn-safe').disabled = !isPending || state.gameOver;
+            document.getElementById('btn-phishing').disabled = !isPending || state.gameOver;
+            document.getElementById('btn-safe').style.opacity = isPending ? '1' : '0.4';
+            document.getElementById('btn-phishing').style.opacity = isPending ? '1' : '0.4';
+
+            renderInbox();
+        }
+
+        // ==================== SELECCIONAR SMS ====================
+        function selectSms(index) {
+            if (state.gameOver) return;
+            state.currentIndex = index;
+            renderSms(index);
+            renderInbox();
+        }
+
+        // ==================== CLASIFICAR SMS ====================
+        function classifySms(decision) {
+            if (state.gameOver) return;
+
+            const sms = state.sms[state.currentIndex];
+            if (sms.status !== 'pending') {
+                setFeedback('⚠️', 'Este SMS ya fue analizado. Selecciona otro.', 'info');
+                return;
+            }
+
+            const isCorrect = (decision === 'safe' && !sms.isPhishing) ||
+                (decision === 'phishing' && sms.isPhishing);
+
+            sms.status = decision === 'safe' ? 'safe' : 'phishing';
+
+            if (isCorrect) {
+                state.correct++;
+                state.streak++;
+                if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+                const bonus = state.streak > 1 ? state.streak * 5 : 0;
+                const points = 50 + bonus + (sms.isPhishing ? 20 : 0);
+                state.score += points;
+                setFeedback('✅', `¡Correcto! +${points} puntos ${bonus > 0 ? `(Racha de ${state.streak}!)` : ''}. ${sms.isPhishing ? 'Era smishing 🚨' : 'Era seguro ✅'}`, 'success');
+
+                // Mostrar análisis después de un momento
+                setTimeout(() => {
+                    renderSms(state.currentIndex);
+                }, 500);
+
+            } else {
+                state.wrong++;
+                state.streak = 0;
+                state.score = Math.max(0, state.score - 25);
+                setFeedback('❌', `Incorrecto. ${sms.isPhishing ? 'Era smishing 🚨' : 'Era seguro ✅'}`, 'error');
+
+                setTimeout(() => {
+                    renderSms(state.currentIndex);
+                }, 500);
+            }
+
+            state.totalAnalyzed++;
+            state.processedIds.add(sms.id);
+
+            updateStats();
+
+            const nextPending = state.sms.findIndex(s => s.status === 'pending');
+            if (nextPending === -1) {
+                state.gameOver = true;
+                setTimeout(() => showResults(), 1500);
+            } else {
+                setTimeout(() => {
+                    state.currentIndex = nextPending;
+                    renderSms(nextPending);
+                    renderInbox();
+                }, 800);
+            }
+        }
+
+        // ==================== SALTAR SMS ====================
+        function skipSms() {
+            if (state.gameOver) return;
+            const sms = state.sms[state.currentIndex];
+            if (sms.status !== 'pending') {
+                setFeedback('⚠️', 'Este SMS ya fue analizado.', 'info');
+                return;
+            }
+
+            sms.status = 'skipped';
+            state.streak = 0;
+            state.score = Math.max(0, state.score - 10);
+            setFeedback('⏭️', 'SMS saltado. -10 puntos', 'info');
+            updateStats();
+
+            const nextPending = state.sms.findIndex(s => s.status === 'pending');
+            if (nextPending === -1) {
+                state.gameOver = true;
+                setTimeout(() => showResults(), 1000);
+            } else {
+                state.currentIndex = nextPending;
+                renderSms(nextPending);
+                renderInbox();
+            }
+        }
+
+        // ==================== ACTUALIZAR ESTADÍSTICAS ====================
+        function updateStats() {
+            const pending = state.sms.filter(s => s.status === 'pending').length;
+            pendingCount.textContent = pending;
+            correctCount.textContent = state.correct;
+            wrongCount.textContent = state.wrong;
+            scoreDisplay.textContent = state.score;
+            renderInbox();
+        }
+
+        // ==================== FEEDBACK ====================
+        function setFeedback(icon, text, type = '') {
+            feedbackIcon.textContent = icon;
+            feedbackText.textContent = text;
+            feedbackText.className = 'fb-text ' + type;
+        }
+
+        // ==================== MOSTRAR RESULTADOS ====================
+        function showResults() {
+            const total = state.correct + state.wrong;
+            const percentage = total > 0 ? Math.round((state.correct / total) * 100) : 0;
+
+            let icon, title, grade;
+            if (percentage >= 90) {
+                icon = '🏆';
+                title = '¡Excelente! Eres un experto en smishing';
+                grade = '🌟 Analista de seguridad nivel avanzado';
+            } else if (percentage >= 70) {
+                icon = '⭐';
+                title = '¡Buen trabajo!';
+                grade = '👍 Buen análisis, sigue practicando';
+            } else if (percentage >= 50) {
+                icon = '📚';
+                title = 'Necesitas más práctica';
+                grade = '📖 Revisa los indicadores de smishing';
+            } else {
+                icon = '🔴';
+                title = '¡Cuidado! Debes mejorar tu detección';
+                grade = '⚠️ Los mensajes fraudulentos son cada vez más realistas';
+            }
+
+            document.getElementById('modal-icon').textContent = icon;
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-subtitle').textContent =
+                `Analizaste ${state.totalAnalyzed} SMS • ${grade}`;
+
+            document.getElementById('modal-correct').textContent = state.correct;
+            document.getElementById('modal-wrong').textContent = state.wrong;
+            document.getElementById('modal-score').textContent = state.score;
+
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        // ==================== REINICIAR ====================
+        function resetGame() {
+            initGame();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        // ==================== INICIO ====================
+        initGame();
+
+        console.log('📱 SmishGuard iniciado');
+        console.log('📨 Analiza los SMS y decide si son seguros o smishing');
+        console.log('🎯 Objetivo: Identificar correctamente todas las amenazas');
+        console.log('💡 Pistas: busca dominios falsos, urgencia, amenazas y solicitud de datos');
+    </script>
+</body>
+</html>
